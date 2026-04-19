@@ -1,0 +1,14 @@
+{
+  "name": "CN Portal",
+  "description": "A modern EdTech platform featuring secure student and admin portals, Google Drive video integration, attendance tracking, and AI-powered meeting schedules.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "Authentication",
+    "Database",
+    "Video Streaming",
+    "Calendar Management"
+  ]
+}

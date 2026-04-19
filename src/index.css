@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #2563eb;
+  --color-sidebar: #1e293b;
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --color-accent-devops: #f59e0b;
+  --color-bg-light: #f8fafc;
+  
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  
+  --radius-card: 16px;
+  
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+@layer base {
+  body {
+    @apply bg-bg-light text-text-main font-sans;
+  }
+}

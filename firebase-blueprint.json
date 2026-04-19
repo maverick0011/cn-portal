@@ -1,0 +1,74 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user information and roles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "student"] },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Meeting": {
+      "title": "Educational Session",
+      "description": "Represents a scheduled class or meeting.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "videoLink": { "type": "string", "description": "Google Drive video link" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["title", "startTime", "endTime"]
+    },
+    "Attendance": {
+      "title": "Student Attendance",
+      "description": "Records student presence in a meeting.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "meetingId": { "type": "string" },
+        "attended": { "type": "boolean" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "meetingId", "attended"]
+    },
+    "Rating": {
+      "title": "Session Feedback",
+      "description": "Student ratings after a session.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "meetingId": { "type": "string" },
+        "rating": { "type": "number" },
+        "feedback": { "type": "string" }
+      },
+      "required": ["studentId", "meetingId", "rating"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and roles"
+    },
+    "/meetings/{meetingId}": {
+      "schema": "Meeting",
+      "description": "Scheduled classes and sessions"
+    },
+    "/meetings/{meetingId}/attendance/{studentId}": {
+      "schema": "Attendance",
+      "description": "Attendance records per meeting"
+    },
+    "/meetings/{meetingId}/ratings/{studentId}": {
+      "schema": "Rating",
+      "description": "Student feedback per session"
+    }
+  }
+}

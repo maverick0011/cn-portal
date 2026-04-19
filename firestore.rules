@@ -1,0 +1,139 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId}
+// Fields:
+//   - uid: string (required)
+//   - email: string (required)
+//   - role: string (required, 'admin' or 'student')
+//   - displayName: string (optional)
+//   - createdAt: string (optional)
+//
+// Collection: meetings
+// Document ID: {meetingId}
+// Fields:
+//   - title: string (required)
+//   - description: string (optional)
+//   - startTime: string (required, ISO date string)
+//   - endTime: string (required, ISO date string)
+//   - videoLink: string (optional)
+//   - createdBy: string (required, admin UID)
+//
+// Collection: meetings/{meetingId}/attendance/{studentId}
+// Document ID: {studentId}
+// Fields:
+//   - studentId: string (required)
+//   - meetingId: string (required)
+//   - attended: bool (required)
+//   - timestamp: string (required)
+//
+// Collection: meetings/{meetingId}/ratings/{studentId}
+// Document ID: {studentId}
+// Fields:
+//   - studentId: string (required)
+//   - meetingId: string (required)
+//   - rating: number (required, 1-5)
+//   - feedback: string (optional)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email_verified == true && (
+               request.auth.token.email == "mavbharath01@gmail.com" ||
+               (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+             );
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.email is string && isValidEmail(data.email) &&
+             data.role in ['admin', 'student'];
+    }
+
+    function isValidMeeting(data) {
+      return data.keys().hasAll(['title', 'startTime', 'endTime']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             isValidDateString(data.startTime) &&
+             isValidDateString(data.endTime);
+    }
+
+    function isValidAttendance(data) {
+      return data.keys().hasAll(['studentId', 'meetingId', 'attended', 'timestamp']) &&
+             data.studentId is string && data.meetingId is string &&
+             data.attended is bool && isValidDateString(data.timestamp);
+    }
+
+    function isValidRating(data) {
+      return data.keys().hasAll(['studentId', 'meetingId', 'rating']) &&
+             data.studentId is string && data.meetingId is string &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow list: if isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() &&
+                      ( (isOwner(userId) && request.resource.data.role == 'student') || isAdmin() );
+      allow update: if isAuthenticated() &&
+                      ( (isOwner(userId) && request.resource.data.role == resource.data.role && !request.resource.data.diff(resource.data).affectedKeys().has('groups')) || isAdmin() );
+    }
+
+    match /folders/{folderId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /meetings/{meetingId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidMeeting(request.resource.data);
+      allow delete: if isAdmin();
+
+      match /attendance/{studentId} {
+        allow read: if isAuthenticated();
+        allow create, update: if (isAdmin() || (isOwner(studentId) && request.resource.data.studentId == studentId)) && isValidAttendance(request.resource.data);
+      }
+
+      match /ratings/{studentId} {
+        allow read: if isAdmin() || isOwner(studentId);
+        allow create, update: if (isAdmin() || (isOwner(studentId) && request.resource.data.studentId == studentId)) && isValidRating(request.resource.data);
+      }
+    }
+  }
+}
